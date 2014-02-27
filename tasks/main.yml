@@ -1,0 +1,31 @@
+# If `<release_dir>/node_modules` exist (committed to git repository)
+# we just need to run `npm rebuild`
+# Else we should install all modules from scratch
+---
+- name: check if node_modules exist
+  shell: >
+    test -d "{{ deploy_release_dir }}/node_modules" && echo 'rebuild' || echo 'install'
+  register: install_strategy
+
+- name: rebuild node_modules
+  command: >
+    npm rebuild
+    chdir={{ deploy_release_dir }}
+  when: install_strategy.stdout == 'rebuild'
+
+## Symlink node_modules to {{ deploy_bundle_dir }} as performance optimization
+# - name: symlink node_modules
+#   file: >
+#     src={{ deploy_bundle_dir }}
+#     dest={{ deploy_release_dir }}/node_modules
+#     state=link
+#     owner={{ ansible_ssh_user }}
+#     group={{ ansible_ssh_user }}
+#     force=yes
+#   when: install_strategy.stdout == 'install'
+
+- name: install node_modules
+  command: >
+    npm install
+    chdir={{ deploy_release_dir }}
+  when: install_strategy.stdout == 'install'
